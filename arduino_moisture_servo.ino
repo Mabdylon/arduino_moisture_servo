@@ -1,39 +1,48 @@
-#include <Servo.h>
+#include <VarSpeedServo.h>
 #include <JeeLib.h>
 
 const int pinMoistureAnalog = A0;
 const int pinMoistureDigital = 5;
-const int pinServoAlert = 7;
-Servo servoAlert;
-int mappedMoisture;
-int lastMappedMoisture;
+const int pinSerovMesure = 7;
+const int pinSerovAlert = 6;
+VarSpeedServo servoMesure;
+VarSpeedServo servoAlert;
+int mappedMoisture = 0;
+int lastMappedMoisture = 0;
+int digitalMoisture = 0;
+int lastDigitalMoisture = 0;
 
 ISR(WDT_vect) { Sleepy::watchdogEvent(); }
 
 void setup() {
   pinMode(pinMoistureAnalog,INPUT);
   pinMode(pinMoistureDigital,INPUT);
-  servoAlert.attach(pinServoAlert);
+  servoMesure.attach(pinSerovMesure);
+  servoAlert.attach(pinSerovAlert);
   Serial.begin(9600);
 }
 
 void loop() {
   int analogMoisture = analogRead(pinMoistureAnalog);
-  int digitalMoisture = digitalRead(pinMoistureDigital);
+  digitalMoisture = digitalRead(pinMoistureDigital);
   mappedMoisture = map(analogMoisture, 0, 1023, 0, 180);
   if(lastMappedMoisture != mappedMoisture) {
-    servoAlert.write(mappedMoisture);
+    servoMesure.write(mappedMoisture, 20, true);
     lastMappedMoisture = mappedMoisture;  
   }
-  delay(2000);
+  if(digitalMoisture != lastDigitalMoisture) {
+       int flagAlertPosition = (digitalMoisture == 0 ? 90 : 180);
+       servoAlert.write(flagAlertPosition, 40, true);
+       lastDigitalMoisture = digitalMoisture;
+    }
 
-  //Sleepy::loseSomeTime(60000);
-  
   Serial.print("Analog Moisture : ");
   Serial.println(analogMoisture);
   Serial.print("Digital Moisture : ");
   Serial.println(digitalMoisture);
   Serial.println("-----------------------");
+  
+  Sleepy::loseSomeTime(5000);
   
   
 }
